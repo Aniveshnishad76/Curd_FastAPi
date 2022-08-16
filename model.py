@@ -2,6 +2,7 @@ from database import Base
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Float, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
+from datetime import datetime, time, timedelta
 
 Base = declarative_base()
 metadata = Base.metadata
@@ -44,3 +45,21 @@ class Product(Base):
     catagory_id = Column(Integer,ForeignKey('Catagory.id'))
     catagory = relationship('Catagory', back_populates= 'products')
 
+
+class Cart(Base):
+    __tablename__ = 'Cart'
+    id = Column(Integer, primary_key = True, index = True)
+    user = Column(String)
+    ordered = Column(Boolean,default=False)
+    total_price = Column(Float,default=0)
+    created_at = Column(DateTime,default = datetime.now())
+
+
+class CartItems(Base):
+    __tablename__ = 'CartItems'
+    id = Column(Integer, primary_key = True, index = True)
+    user = Column(String)
+    cart = Column(Integer,ForeignKey('Cart.id'))
+    products = Column(Integer,ForeignKey('Product.id'))
+    price = Column(Float,default=0)
+    quantity = Column(Integer,default=1)

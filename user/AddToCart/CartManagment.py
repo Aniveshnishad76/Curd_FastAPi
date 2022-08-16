@@ -37,6 +37,35 @@ def get_db():
         db.close()
 
 
-@router.post('Add-To-Cart')
-def add_to_cart(request: AddToCartSchemas, db : Session = Depends(get_db)):
-    pass
+@router.post('/Add-To-Cart')
+def add_to_cart(request: AddToCartSchemas,Authorize: AuthJWT = Depends(), db : Session = Depends(get_db)):
+    Authorize.jwt_required()
+    user = Authorize.get_jwt_subject()
+    cart = db.query(model.Cart).filter(model.User.email == model.Cart.user, model.Cart.ordered == False).all()
+    if len(cart) < 1:
+        cart_update = model.Cart(user = user,ordered = False)
+        db.add(cart_update)
+        db.commit()
+        db.refresh(cart_update)
+    cart = db.query(model.Cart).filter(model.User.email == model.Cart.user, model.Cart.ordered == False).all()
+    product = db.query(model.Product).filter(model.Product.id == request.product_id).all()
+    result = model.CartItems(user = user,cart=cart[0].id,products = request.product_id , price = product[0].price,quantity = request.quantity)
+    
+    data = db.query(model.Cart).filter(model.User.email == user, model.Cart.ordered == False).first()
+    data.total_price = request.quantity * product[0].price
+    db.commit()
+
+    db.add(result)
+    db.commit()
+    db.refresh(result)
+    return result
+
+
+@router.get('/My-Cart')
+def my_cart(Authorize: AuthJWT = Depends(), db: Session = Depends(get_db)):
+    Authorize.jwt_required()
+    user = Authorize.get_jwt_subject()
+    if user:
+        data = db.query(model.Cart).filter(model.Cart.user == user, model.Cart.ordered == False).first()
+        return data
+    

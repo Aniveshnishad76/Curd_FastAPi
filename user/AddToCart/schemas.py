@@ -1,10 +1,8 @@
 from pydantic import BaseModel
 from typing import Optional, Union
 
+
 class AddToCartSchemas(BaseModel):
-    User : int
-    Catagory : int
+    product_id : int 
     quantity : int
-    price : str
-    cart : str
   
