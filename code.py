@@ -1,8 +1,19 @@
-string = "absafvbbabdbfbsdasa"
 
-dict = {}
+data = [{
+    "age" : 28,
+    "name" : "anivesh"},{
+    "age" : 30,
+    "name" : "anivesh"
+},{
+    "age" : 21,
+    "name" : "anivesh"
+},{
+    "age" : 11,
+    "name" : "anivesh"
+},{
+    "age" : 23,
+    "name" : "anivesh"
+}]
 
-for i in string:
-    dict[i] = dict.get(i,0).count()
 
-print(dict)
+result = sorted(key=data.get('age'))
