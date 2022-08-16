@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, Union
 
 class AdminSchemas(BaseModel):
@@ -19,9 +19,10 @@ class UpdateAdminSchemas(BaseModel):
 
 
 class CategorySchemas(BaseModel):
+    catagory_id : int
     catagory_name : str 
 
-    class Config():
+    class Config:
         orm_mode = True
 
 
@@ -30,8 +31,7 @@ class ProductSchemas(BaseModel):
     description : str
     price : float
     is_available : bool
-    catagory_id : CategorySchemas
 
-    class Config():
+    class Config:
         orm_mode = True
 

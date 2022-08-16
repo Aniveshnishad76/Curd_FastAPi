@@ -32,7 +32,7 @@ class Catagory(Base):
 
     id = Column(Integer, primary_key = True, index = True)
     catagory_name = Column(String, unique=True)
-    products = relationship('Product', back_populates= 'catagory_in')
+    products = relationship('Product', back_populates= 'catagory')
 
 class Product(Base):
     __tablename__ = 'Product'
@@ -42,5 +42,5 @@ class Product(Base):
     price = Column(Float, default=0)
     is_available = Column(Boolean, default= True)
     catagory_id = Column(Integer,ForeignKey('Catagory.id'))
-    catagory_in = relationship('Catagory', back_populates= 'products')
+    catagory = relationship('Catagory', back_populates= 'products')
 

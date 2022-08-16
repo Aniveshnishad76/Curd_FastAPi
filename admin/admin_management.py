@@ -108,14 +108,32 @@ def create_categoery(request: CategorySchemas, db : Session = Depends(get_db)):
     return data
 
 
-@router.get('/products')#, response_model = ProductSchemas)
-def get_all_product(db : Session = Depends(get_db)):
-    data = db.query(model.Product).all()
+@router.get('/products')
+def get_all_product(db: Session = Depends(get_db)):
+    data = db.query(
+        model.Product.id,
+        model.Product.product_name,
+        model.Catagory.id.label('catageory_id'),
+        model.Catagory.catagory_name,
+        model.Product.description,
+        model.Product.price,
+        model.Product.is_available,
+        ).join(
+        model.Catagory, model.Product.catagory_id == model.Catagory.id
+    ).all()
     return data
 
-@router.get('/products{product_id}' )       
+@router.get('/products{product_id}')      
 def get_product_by_id(product_id : int , db : Session = Depends(get_db)):
-    data = db.query(model.Product).filter(model.Product.id == product_id).first()
+    data = db.query(
+        model.Product.id,
+        model.Catagory.id.label('catageory_id'),
+        model.Product.product_name,
+        model.Catagory.catagory_name,
+        model.Product.description,
+        model.Product.price,
+        model.Product.is_available,
+    ).join(model.Catagory,model.Product.catagory_id== model.Catagory.id ).filter(model.Product.id == product_id).first()
     return data
 
 @router.post('/product')
