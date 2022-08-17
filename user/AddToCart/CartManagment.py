@@ -3,7 +3,7 @@ import bcrypt
 import model
 from fastapi_jwt_auth import AuthJWT
 from user.schemas import UserSchemas,UserLoginSchemas,UpdateUserSchemas
-from user.AddToCart.schemas import AddToCartSchemas
+from user.AddToCart.schemas import AddToCartSchemas,UpdateCartSchemas,RemoveCartSchemas
 from database import SessionLocal, engine
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -37,6 +37,28 @@ def get_db():
         db.close()
 
 
+@router.get('/My-Cart')
+def my_cart(Authorize: AuthJWT = Depends(), db: Session = Depends(get_db)):
+    Authorize.jwt_required()
+    user = Authorize.get_jwt_subject()
+    if user:
+        data = db.query(model.Cart).filter(model.Cart.user == user, model.Cart.ordered == False).all()
+        cart_items = db.query(
+            model.CartItems.price,
+            model.CartItems.id,
+            model.CartItems.quantity,
+            model.Product.product_name,
+            model.Product.description,
+            model.Product.price,
+        ).join(
+            model.Product,model.CartItems.products == model.Product.id
+            ).filter(model.CartItems.user == user).all()
+        if data:
+            return {"cart":data, "cart_items" : cart_items}
+        else:
+            return "Your cart is empty"
+    
+
 @router.post('/Add-To-Cart')
 def add_to_cart(request: AddToCartSchemas,Authorize: AuthJWT = Depends(), db : Session = Depends(get_db)):
     Authorize.jwt_required()
@@ -49,23 +71,76 @@ def add_to_cart(request: AddToCartSchemas,Authorize: AuthJWT = Depends(), db : S
         db.refresh(cart_update)
     cart = db.query(model.Cart).filter(model.User.email == model.Cart.user, model.Cart.ordered == False).all()
     product = db.query(model.Product).filter(model.Product.id == request.product_id).all()
-    result = model.CartItems(user = user,cart=cart[0].id,products = request.product_id , price = product[0].price,quantity = request.quantity)
     
-    data = db.query(model.Cart).filter(model.User.email == user, model.Cart.ordered == False).first()
-    data.total_price = request.quantity * product[0].price
-    db.commit()
+    check = db.query(model.CartItems).filter(model.CartItems.user == user,model.CartItems.products == request.product_id).all()
+    if check:
+        return "Already in cart"
+    else:
+        total_price = 0
 
-    db.add(result)
-    db.commit()
-    db.refresh(result)
-    return result
+        result = model.CartItems(user = user,cart=cart[0].id,products = request.product_id , price = (product[0].price)*(request.quantity) ,quantity = request.quantity)
+        db.add(result)
+        db.commit()
+        db.refresh(result)
+        cart_items = db.query(model.CartItems).filter(model.CartItems.user == user, model.CartItems.cart ==cart[0].id ).all()
+        for items in cart_items:
+            total_price = total_price + items.price
+
+        dict1 = { 'total_price' : total_price }
+        for key, value in dict1.items():
+            setattr(cart[0],key,value)
+        db.commit()
+        return "Added in cart"
 
 
-@router.get('/My-Cart')
-def my_cart(Authorize: AuthJWT = Depends(), db: Session = Depends(get_db)):
+@router.patch('/Update-Cart')
+def update_cart_items(request:UpdateCartSchemas,Authorize: AuthJWT = Depends(), db : Session = Depends(get_db)):
     Authorize.jwt_required()
     user = Authorize.get_jwt_subject()
     if user:
-        data = db.query(model.Cart).filter(model.Cart.user == user, model.Cart.ordered == False).first()
-        return data
+        cart_items = db.query(model.CartItems).filter(model.CartItems.id == request.item_id,model.CartItems.user == user).all()
+        product_id = cart_items[0].products
+        products_details = db.query(model.Product).filter(model.Product.id == product_id).all()
+        price = products_details[0].price
+        new_price = price * request.quantity 
+        dict1 = { 'quantity' : request.quantity , 'price' : new_price }
+        for key, value in dict1.items():
+            setattr(cart_items[0],key,value)
+        db.commit()
+
+        cart = db.query(model.Cart).filter(model.Cart.user == user, model.Cart.ordered == False).all()
+        cart_item = db.query(model.CartItems).filter(model.CartItems.user == user).all()
+        total_price = 0
+        for items in cart_item:
+            total_price = total_price + items.price
+
+        dict1 = { 'total_price' : total_price }
+        for key, value in dict1.items():
+            setattr(cart[0],key,value)
+        db.commit()
+        return "Updated"
+
+@router.delete('/Remove-from-cart')
+def remove_from_cart(request:RemoveCartSchemas,Authorize: AuthJWT = Depends(), db : Session = Depends(get_db)):
+    Authorize.jwt_required()
+    user = Authorize.get_jwt_subject()
+    if user:
+        db.query(model.CartItems).filter(model.CartItems.id == request.item_id,model.CartItems.user == user).delete()
+        
+        cart = db.query(model.Cart).filter(model.Cart.user == user, model.Cart.ordered == False).all()
+        
+        cart_items = db.query(model.CartItems).filter(model.CartItems.user == user).all()
+        
+        total_price = 0
+        for items in cart_items:
+            total_price = total_price + items.price
+
+        dict1 = { 'total_price' : total_price }
+        for key, value in dict1.items():
+            setattr(cart[0],key,value)
+        db.commit()
+
+        return "Item deleted"
+        
     
+

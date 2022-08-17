@@ -35,7 +35,6 @@ def set_password(pw):
     password_hash = pwhash.decode('utf8')
     return password_hash
 
-
 @router.post("/register")
 def create_user(request: AdminSchemas, db : Session = Depends(get_db)):
     user = db.query(model.Admin).filter(model.Admin.email == request.email).first()
