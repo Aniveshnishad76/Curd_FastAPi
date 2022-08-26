@@ -1,8 +1,10 @@
 from database import Base
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Float, Boolean
+from sqlalchemy.dialects.postgresql import BIGINT,ARRAY
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from datetime import datetime, time, timedelta
+from typing import List
 
 Base = declarative_base()
 metadata = Base.metadata
@@ -44,6 +46,7 @@ class Product(Base):
     is_available = Column(Boolean, default= True)
     catagory_id = Column(Integer,ForeignKey('Catagory.id'))
     catagory = relationship('Catagory', back_populates= 'products')
+    cart_items = relationship('CartItems', back_populates= 'product_details')
 
 
 class Cart(Base):
@@ -53,6 +56,7 @@ class Cart(Base):
     ordered = Column(Boolean,default=False)
     total_price = Column(Float,default=0)
     created_at = Column(DateTime,default = datetime.now())
+    cartitem = relationship('CartItems', back_populates= 'cart_details')
 
 
 class CartItems(Base):
@@ -63,3 +67,17 @@ class CartItems(Base):
     products = Column(Integer,ForeignKey('Product.id'))
     price = Column(Float,default=0)
     quantity = Column(Integer,default=1)
+    cart_details = relationship('Cart', back_populates= 'cartitem')
+    product_details = relationship('Product', back_populates= 'cart_items')
+
+
+class Orders(Base):
+    __tablename__ = 'Orders'
+    id = Column(Integer, primary_key = True, index = True)
+    user = Column(String)
+    cart = Column(Integer)
+    products =  Column(ARRAY(Integer),nullable = False)
+    price = Column(Float,default=0)
+    is_paid = Column(Boolean,default=False)
+    payment_id = Column(String)
+    order_id = Column(String)

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, Union
+from typing import Optional, Union, List
 
 class AdminSchemas(BaseModel):
     email : str
@@ -19,19 +19,26 @@ class UpdateAdminSchemas(BaseModel):
 
 
 class CategorySchemas(BaseModel):
-    catagory_id : int
     catagory_name : str 
-
-    class Config:
+    
+    class Config():
         orm_mode = True
 
 
-class ProductSchemas(BaseModel):
+class ProductSchemasPost(BaseModel):
     product_name : str
     description : str
     price : float
     is_available : bool
+    catagory_id : int
+    
 
-    class Config:
+class ProductSchemas(BaseModel):
+    id : int
+    product_name : str
+    description : str
+    price : float
+    is_available : bool
+    catagory : CategorySchemas
+    class Config():
         orm_mode = True
-

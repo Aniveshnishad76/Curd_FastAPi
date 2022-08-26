@@ -2,7 +2,7 @@ from fastapi import FastAPI , Depends
 import bcrypt
 import model
 from fastapi_jwt_auth import AuthJWT
-from admin.schemas import AdminSchemas,AdminLoginSchemas,UpdateAdminSchemas,CategorySchemas,ProductSchemas
+from admin.schemas import AdminSchemas,AdminLoginSchemas,UpdateAdminSchemas,CategorySchemas,ProductSchemas,ProductSchemasPost
 from database import SessionLocal, engine
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -100,45 +100,28 @@ def get_categoery(db : Session = Depends(get_db)):
 
 @router.post('/catagory')
 def create_categoery(request: CategorySchemas, db : Session = Depends(get_db)):
-    data = model.Catagory(catagory_name = request.Catagory_name)
+    data = model.Catagory(catagory_name = request.catagory_name)
     db.add(data)
     db.commit()
     db.refresh(data)
     return data
 
 
-@router.get('/products')
+@router.get('/products',response_model = List[ProductSchemas])
 def get_all_product(db: Session = Depends(get_db)):
-    data = db.query(
-        model.Product.id,
-        model.Product.product_name,
-        model.Catagory.id.label('catageory_id'),
-        model.Catagory.catagory_name,
-        model.Product.description,
-        model.Product.price,
-        model.Product.is_available,
-        ).join(
-        model.Catagory, model.Product.catagory_id == model.Catagory.id
-    ).all()
+    data = db.query(model.Product).all()
     return data
 
-@router.get('/products{product_id}')      
+@router.get('/products{product_id}',response_model = List[ProductSchemas])      
 def get_product_by_id(product_id : int , db : Session = Depends(get_db)):
-    data = db.query(
-        model.Product.id,
-        model.Catagory.id.label('catageory_id'),
-        model.Product.product_name,
-        model.Catagory.catagory_name,
-        model.Product.description,
-        model.Product.price,
-        model.Product.is_available,
-    ).join(model.Catagory,model.Product.catagory_id== model.Catagory.id ).filter(model.Product.id == product_id).first()
+    data = db.query(model.Product).filter(model.Product.id == product_id).all()
     return data
 
 @router.post('/product')
-def create_product(request: ProductSchemas, db : Session = Depends(get_db)):
-    data = model.Product(product_name = request.product_name,description=request.description,price = request.price, catagory_id= request.catagory_id)
-    db.add(data)
-    db.commit()
-    db.refresh(data)
+def create_product(request: List[ProductSchemasPost], db : Session = Depends(get_db)):
+    for req in request:
+        data = model.Product(product_name = req.product_name,description=req.description,price = req.price, catagory_id= req.catagory_id)
+        db.add(data)
+        db.commit()
+        db.refresh(data)
     return data
