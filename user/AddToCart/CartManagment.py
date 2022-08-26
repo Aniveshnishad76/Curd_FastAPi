@@ -1,12 +1,13 @@
-from fastapi import FastAPI , Depends
+from fastapi import FastAPI , Depends, status, Response
 import bcrypt
 import model
 from fastapi_jwt_auth import AuthJWT
 from user.schemas import UserSchemas,UserLoginSchemas,UpdateUserSchemas
-from user.AddToCart.schemas import AddToCartSchemas,UpdateCartSchemas,RemoveCartSchemas
+from user.AddToCart.schemas import AddToCartSchemas,UpdateCartSchemas,RemoveCartSchemas,CartItemsSchemas
 from database import SessionLocal, engine
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 
 app = FastAPI(
@@ -37,26 +38,16 @@ def get_db():
         db.close()
 
 
-@router.get('/My-Cart')
-def my_cart(Authorize: AuthJWT = Depends(), db: Session = Depends(get_db)):
+@router.get('/My-Cart',response_model = List[CartItemsSchemas])
+def my_cart(response : Response, Authorize: AuthJWT = Depends(), db: Session = Depends(get_db)):
     Authorize.jwt_required()
     user = Authorize.get_jwt_subject()
     if user:
-        data = db.query(model.Cart).filter(model.Cart.user == user, model.Cart.ordered == False).all()
-        cart_items = db.query(
-            model.CartItems.price,
-            model.CartItems.id,
-            model.CartItems.quantity,
-            model.Product.product_name,
-            model.Product.description,
-            model.Product.price,
-        ).join(
-            model.Product,model.CartItems.products == model.Product.id
-            ).filter(model.CartItems.user == user).all()
-        if data:
-            return {"cart":data, "cart_items" : cart_items}
-        else:
-            return "Your cart is empty"
+        cart_item = db.query(model.CartItems).filter(model.CartItems.user == user).all()
+        return cart_item
+    else:
+        response.status_code = status.HTTP_404_CONTENT_NOT_FOUND
+        return "Your cart is empty"
     
 
 @router.post('/Add-To-Cart')
@@ -77,7 +68,6 @@ def add_to_cart(request: AddToCartSchemas,Authorize: AuthJWT = Depends(), db : S
         return "Already in cart"
     else:
         total_price = 0
-
         result = model.CartItems(user = user,cart=cart[0].id,products = request.product_id , price = (product[0].price)*(request.quantity) ,quantity = request.quantity)
         db.add(result)
         db.commit()
@@ -141,6 +131,10 @@ def remove_from_cart(request:RemoveCartSchemas,Authorize: AuthJWT = Depends(), d
         db.commit()
 
         return "Item deleted"
+
+# @router.get('/testing')
+# def Testing( db : Session = Depends(get_db)):
+#     result = db.query(model.Catagory).order_by(model.Catagory.catagory_name).all()
+#     return result 
         
     
-

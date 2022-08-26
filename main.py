@@ -2,6 +2,7 @@ from fastapi import FastAPI , Depends
 import bcrypt
 from user import user_management
 from user.AddToCart import CartManagment
+from user.UserOrder import order_managment
 from admin import admin_management
 import model
 from fastapi_jwt_auth import AuthJWT
@@ -17,6 +18,7 @@ model.Base.metadata.create_all(bind=engine)
 app.include_router(user_management.router)
 app.include_router(admin_management.router)
 app.include_router(CartManagment.router)
+app.include_router(order_managment.router)
 
 def get_db():
     db = SessionLocal()
@@ -24,4 +26,7 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+
 

@@ -1,6 +1,9 @@
-from fastapi import FastAPI , Depends
+from fastapi import FastAPI , Depends,  Form,File, UploadFile
+from datetime import datetime, timedelta
 import bcrypt
 import model
+from typing import List
+from elasticsearch import Elasticsearch
 from fastapi_jwt_auth import AuthJWT
 from user.schemas import UserSchemas,UserLoginSchemas,UpdateUserSchemas
 from database import SessionLocal, engine
@@ -17,6 +20,15 @@ router = APIRouter(
 
 model.Base.metadata.create_all(bind=engine)
 
+
+def es_employee_mapping():
+    return {
+        "properties":{
+            "name": {"type": "keyword"},
+            "id": {"type": "integer"},
+            "salary": {"type": "double"}
+        }
+    }
 
 class Settings(BaseModel):
     authjwt_secret_key: str = "secret"
@@ -65,9 +77,10 @@ def login_user(request: UserLoginSchemas, db : Session = Depends(get_db),Authori
     if data:
         check = check_password(request.password,data.hased_password)
         if check is True:
-            access_token =  Authorize.create_access_token(subject=request.email)
+            expires = timedelta(days=1)
+            access_token =  Authorize.create_access_token(subject=request.email,expires_time=expires)
             Authorize.set_access_cookies(access_token)
-            return access_token
+            return {"access_token" : access_token}
         else:
             return "Password not match"
     else:
@@ -102,3 +115,19 @@ def logout(Authorize: AuthJWT = Depends()):
     Authorize.jwt_required()
     Authorize.unset_jwt_cookies()
     return "Successfully logout"
+
+@router.post('/testing', deprecated=True)
+def testing(pic :  List[UploadFile] ):
+    """
+    Create an item with all the information:
+
+    - **name**: each item must have a name
+    - **description**: a long description
+    - **price**: required
+    - **tax**: if the item doesn't have tax, you can omit this
+    - **tags**: a set of unique tag strings for this item
+    """
+    return [i.filename for i in pic]
+        
+    
+
